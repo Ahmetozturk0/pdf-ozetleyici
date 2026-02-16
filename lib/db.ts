@@ -18,6 +18,7 @@ export interface Notebook {
     title: string;
     emoji: string;
     created_at: string;
+    updated_at: string;
 }
 
 export interface Document {
@@ -28,6 +29,16 @@ export interface Document {
     summary: string;
     content?: string;
     file_hash: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ChatMessage {
+    id: string;
+    notebook_id: string;
+    user_id: string;
+    role: 'user' | 'assistant';
+    content: string;
     created_at: string;
 }
 
@@ -90,9 +101,32 @@ async function ensureTable() {
         )
     `;
 
+    // Chat messages table
+    await sql`
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id TEXT PRIMARY KEY,
+            notebook_id TEXT NOT NULL REFERENCES notebooks(id) ON DELETE CASCADE,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    `;
+
     // Migrations for existing tables
     await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS content TEXT`;
     await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS notebook_id TEXT`;
+    await sql`ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`;
+    await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`;
+
+    // Indexes for performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_notebooks_user_id ON notebooks(user_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_documents_user_id ON documents(user_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_documents_notebook_id ON documents(notebook_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_documents_file_hash ON documents(user_id, file_hash)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_notes_notebook_id ON notes(notebook_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_chat_messages_notebook_id ON chat_messages(notebook_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`;
 
     tableCreated = true;
 }
@@ -138,7 +172,8 @@ export async function updateNotebook(id: string, userId: string, data: { title?:
 
 export async function deleteNotebook(id: string, userId: string) {
     await ensureTable();
-    // Delete all notes and documents in this notebook first
+    // Delete all related data first
+    await sql`DELETE FROM chat_messages WHERE notebook_id = ${id} AND user_id = ${userId}`;
     await sql`DELETE FROM notes WHERE notebook_id = ${id} AND user_id = ${userId}`;
     await sql`DELETE FROM documents WHERE notebook_id = ${id} AND user_id = ${userId}`;
     await sql`DELETE FROM notebooks WHERE id = ${id} AND user_id = ${userId}`;
@@ -250,8 +285,29 @@ export async function createUser(user: { id: string; email: string; password: st
     return rows[0] as User;
 }
 
-export async function getUsers(): Promise<User[]> {
+// --- CHAT MESSAGES ---
+
+export async function saveChatMessage(msg: { id: string; notebook_id: string; user_id: string; role: 'user' | 'assistant'; content: string }): Promise<ChatMessage> {
     await ensureTable();
-    const rows = await sql`SELECT * FROM users`;
-    return rows as User[];
+    const rows = await sql`
+        INSERT INTO chat_messages (id, notebook_id, user_id, role, content)
+        VALUES (${msg.id}, ${msg.notebook_id}, ${msg.user_id}, ${msg.role}, ${msg.content})
+        RETURNING *
+    `;
+    return rows[0] as ChatMessage;
+}
+
+export async function getChatMessagesByNotebookId(notebookId: string, userId: string): Promise<ChatMessage[]> {
+    await ensureTable();
+    const rows = await sql`
+        SELECT * FROM chat_messages
+        WHERE notebook_id = ${notebookId} AND user_id = ${userId}
+        ORDER BY created_at ASC
+    `;
+    return rows as ChatMessage[];
+}
+
+export async function deleteChatMessagesByNotebookId(notebookId: string, userId: string) {
+    await ensureTable();
+    await sql`DELETE FROM chat_messages WHERE notebook_id = ${notebookId} AND user_id = ${userId}`;
 }

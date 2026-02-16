@@ -59,7 +59,7 @@ export function NotebookView({ notebookId, notebookTitle, notebookEmoji }: Props
     useEffect(() => {
         fetchSources();
         fetchNotes();
-        setMessages([]);
+        fetchChatHistory();
         setOverview('');
         setStudioMode(null);
         setCards([]);
@@ -94,6 +94,21 @@ export function NotebookView({ notebookId, notebookTitle, notebookEmoji }: Props
         } catch (e) { console.error(e); }
     };
 
+    const fetchChatHistory = async () => {
+        try {
+            const res = await fetch(`/api/chat-messages?notebookId=${notebookId}`);
+            const data = await res.json();
+            if (data.messages && data.messages.length > 0) {
+                setMessages(data.messages.map((m: any) => ({ role: m.role, content: m.content })));
+            } else {
+                setMessages([]);
+            }
+        } catch (e) {
+            console.error(e);
+            setMessages([]);
+        }
+    };
+
     /* ======== Overview ======== */
     const generateOverview = async () => {
         setLoadingOverview(true);
@@ -116,7 +131,7 @@ export function NotebookView({ notebookId, notebookTitle, notebookEmoji }: Props
     const buildChatBody = (message: string) => {
         const selectedIds = Array.from(selected);
         if (selectedIds.length > 0) {
-            return { docIds: selectedIds, message };
+            return { docIds: selectedIds, notebookId, message };
         }
         return { notebookId, message };
     };

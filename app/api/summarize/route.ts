@@ -77,12 +77,21 @@ export async function POST(req: NextRequest) {
 
     console.log(`Uploaded file to Gemini: ${uploadResult.file.uri} (${uploadResult.file.state})`);
 
-    // 3. Generate Content using File URI
-    // Use 'gemini-2.5-flash'
+    // 3. Generate Content using File URI — TEK API ÇAĞRISI
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
-    const prompt = `Bu PDF belgesini Türkçe olarak, net ve anlaşılır bir şekilde özetle. Önemli noktaları madde işaretleri ile belirt. Belgenin ana fikrine ve detaylarına odaklan.`;
+    const needsTitle = !notebookId;
+
+    const prompt = `Bu PDF belgesini analiz et ve aşağıdaki bilgileri JSON formatında döndür.
+
+SADECE aşağıdaki JSON yapısını döndür, başka hiçbir şey yazma, markdown code block kullanma:
+
+{
+  "summary": "Belgenin Türkçe özeti. Net ve anlaşılır olsun. Önemli noktaları madde işaretleri (- ile) ile belirt. Belgenin ana fikrine ve detaylarına odaklan.",
+  ${needsTitle ? '"title": "Belge için kısa (en fazla 5 kelime), açıklayıcı bir Türkçe başlık. Tırnak işareti kullanma.",' : ''}
+  "content": "Belgedeki TÜM metni olduğu gibi, hiçbir şey eklemeden veya çıkarmadan aynen çıkar. Sadece ham metni döndür."
+}`;
 
     const result = await model.generateContent([
       {
@@ -95,34 +104,38 @@ export async function POST(req: NextRequest) {
     ]);
 
     const response = await result.response;
-    const summary = response.text();
+    const rawText = response.text();
+
+    // JSON'u parse et
+    let summary = '';
+    let autoTitle = file.name.replace(/\.pdf$/i, '');
+    let pdfText = '';
+
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        summary = parsed.summary || '';
+        if (needsTitle && parsed.title && parsed.title.length < 60) {
+          autoTitle = parsed.title;
+        }
+        pdfText = parsed.content || '';
+      } else {
+        // JSON parse edilemezse ham yanıtı özet olarak kullan
+        summary = rawText;
+      }
+    } catch (e) {
+      console.warn('JSON parse failed, using raw response as summary:', e);
+      summary = rawText;
+    }
+
+    console.log(`Processed PDF — summary: ${summary.length} chars, content: ${pdfText.length} chars`);
 
     // Auto-create notebook if needed
     let finalNotebookId = notebookId;
     let createdNotebook = null;
 
     if (!finalNotebookId) {
-      // Ask Gemini to generate a short title for the notebook
-      let autoTitle = file.name.replace('.pdf', '');
-      try {
-        const titleResult = await model.generateContent([
-          {
-            fileData: {
-              mimeType: uploadResult.file.mimeType,
-              fileUri: uploadResult.file.uri
-            }
-          },
-          { text: 'Bu PDF belgesi için kısa (en fazla 5 kelime), açıklayıcı bir Türkçe başlık üret. Sadece başlığı döndür, başka hiçbir şey yazma. Tırnak işareti kullanma.' }
-        ]);
-        const titleResponse = await titleResult.response;
-        const generatedTitle = titleResponse.text().trim();
-        if (generatedTitle && generatedTitle.length < 60) {
-          autoTitle = generatedTitle;
-        }
-      } catch (e) {
-        console.warn('Could not generate auto title:', e);
-      }
-
       const { createNotebook } = await import('@/lib/db');
       createdNotebook = await createNotebook({
         id: uuidv4(),
@@ -131,25 +144,6 @@ export async function POST(req: NextRequest) {
         emoji: '📓',
       });
       finalNotebookId = createdNotebook.id;
-    }
-
-    // Extract full text from PDF via Gemini
-    let pdfText = '';
-    try {
-      const extractResult = await model.generateContent([
-        {
-          fileData: {
-            mimeType: uploadResult.file.mimeType,
-            fileUri: uploadResult.file.uri
-          }
-        },
-        { text: 'Bu PDF belgesindeki TÜM metni olduğu gibi, hiçbir şey eklemeden veya çıkarmadan aynen çıkar. Sadece belgedeki ham metni döndür, yorum veya açıklama ekleme.' }
-      ]);
-      const extractResponse = await extractResult.response;
-      pdfText = extractResponse.text();
-      console.log('PDF text extracted via Gemini, length:', pdfText.length);
-    } catch (e) {
-      console.error('Failed to extract text via Gemini:', e);
     }
 
     // Save to Database

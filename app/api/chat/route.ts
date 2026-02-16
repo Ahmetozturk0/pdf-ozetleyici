@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { auth } from '@/auth';
-import { getDocumentById, getDocumentsByNotebookId } from '@/lib/db';
+import { getDocumentById, getDocumentsByNotebookId, saveChatMessage } from '@/lib/db';
+import { v4 as uuidv4 } from 'uuid';
 
 export const runtime = 'nodejs';
 
@@ -92,6 +93,16 @@ Soru: ${message}
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
+
+        // Save chat messages to DB if we have a notebookId
+        if (notebookId) {
+            try {
+                await saveChatMessage({ id: uuidv4(), notebook_id: notebookId, user_id: session.user.id, role: 'user', content: message });
+                await saveChatMessage({ id: uuidv4(), notebook_id: notebookId, user_id: session.user.id, role: 'assistant', content: text });
+            } catch (e) {
+                console.warn('Could not save chat messages:', e);
+            }
+        }
 
         return NextResponse.json({ reply: text });
 
