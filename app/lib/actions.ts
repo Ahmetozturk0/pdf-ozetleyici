@@ -1,6 +1,6 @@
 'use server';
 
-import { signIn, signOut } from '@/auth';
+import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { createUser } from '@/lib/db';
 import bcrypt from 'bcryptjs';
@@ -20,16 +20,16 @@ export async function authenticate(prevState: string | undefined, formData: Form
         if (error instanceof AuthError) {
             switch (error.type) {
                 case 'CredentialsSignin':
-                    return 'Invalid credentials.';
+                    return 'Geçersiz e-posta veya şifre.';
                 default:
-                    return 'Something went wrong.';
+                    return 'Bir hata oluştu.';
             }
         }
         throw error;
     }
 }
 
-export async function register(prevState: string | undefined, formData: FormData) {
+export async function register(prevState: { errors?: Record<string, string[]>; message?: string; success?: boolean } | undefined, formData: FormData) {
     const validatedFields = RegisterSchema.safeParse({
         name: formData.get('name'),
         email: formData.get('email'),
@@ -39,7 +39,7 @@ export async function register(prevState: string | undefined, formData: FormData
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: 'Missing Fields. Failed to Register.',
+            message: 'Lütfen tüm alanları doğru şekilde doldurun.',
         };
     }
 
@@ -56,16 +56,11 @@ export async function register(prevState: string | undefined, formData: FormData
     } catch (error) {
         console.error('Registration error:', error);
         return {
-            message: 'Database Error: Failed to Create User. Email might actally exist.',
+            message: 'Veritabanı hatası: Kullanıcı oluşturulamadı. Bu e-posta adresi zaten kayıtlı olabilir.',
         };
     }
 
     // Redirect or return success for client handling
     return { success: true };
 }
-
-export async function handleSignOut() {
-    await signOut({ redirectTo: '/login' });
-}
-
 

@@ -3,12 +3,11 @@ import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { getUserByEmail } from './lib/db';
 import { z } from 'zod';
+import { authConfig } from './auth.config';
 
 export const { auth, signIn, signOut, handlers: { GET, POST } } = NextAuth({
+    ...authConfig,
     session: { strategy: 'jwt' },
-    pages: {
-        signIn: '/login',
-    },
     providers: [
         Credentials({
             async authorize(credentials) {
@@ -31,6 +30,7 @@ export const { auth, signIn, signOut, handlers: { GET, POST } } = NextAuth({
         }),
     ],
     callbacks: {
+        ...authConfig.callbacks,
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id;

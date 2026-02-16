@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
+const inter = Inter({ subsets: ["latin"] });
+
 export const metadata: Metadata = {
-  title: "PDF Summarizer — AI-Powered Document Insights",
-  description: "Upload any PDF and get an AI-powered summary in seconds. Powered by Google Gemini.",
+  title: "PDF Özetleyici — Yapay Zeka ile Belge Analizi",
+  description: "PDF belgelerinizi yükleyin ve saniyeler içinde yapay zeka destekli özetler alın. Google Gemini ile güçlendirilmiştir.",
 };
 
 export default function RootLayout({
@@ -12,8 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="tr">
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }

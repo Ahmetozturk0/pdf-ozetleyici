@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { FileText } from 'lucide-react';
 
 export default function RegisterPage() {
-    // @ts-ignore
     const [state, dispatch] = useActionState(register, undefined);
     const router = useRouter();
 
