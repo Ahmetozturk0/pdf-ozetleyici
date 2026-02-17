@@ -1,0 +1,298 @@
+/* ===================================================================
+   BASE — Reset, Layout, Background, Header, Footer, Utilities
+   =================================================================== */
+
+/* ---------- RESET & BASE ---------- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: #0c0c1d;
+    color: #e4e4ed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+    width: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 99px;
+}
+
+/* ---------- ANIMATIONS ---------- */
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pulseDot {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.4;
+        transform: scale(0.85);
+    }
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes spinSlow {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes progressSlide {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(300%);
+    }
+}
+
+/* ---------- PAGE LAYOUT ---------- */
+.page-wrapper {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ---------- BACKGROUND ---------- */
+.bg-layer {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: #0c0c1d;
+}
+
+.bg-aurora-top {
+    position: absolute;
+    top: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1000px;
+    height: 500px;
+    background: radial-gradient(ellipse at 50% 20%, rgba(100, 60, 200, 0.12) 0%, rgba(45, 212, 191, 0.06) 40%, transparent 70%);
+    pointer-events: none;
+}
+
+.bg-aurora-bottom {
+    position: absolute;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    height: 400px;
+    background: radial-gradient(ellipse at 50% 80%, rgba(80, 50, 180, 0.08) 0%, rgba(45, 212, 191, 0.04) 40%, transparent 70%);
+    pointer-events: none;
+}
+
+.bg-glow-left {
+    position: absolute;
+    top: 20%;
+    left: -100px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.bg-glow-right {
+    position: absolute;
+    bottom: 30%;
+    right: -100px;
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(45, 212, 191, 0.04) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* ---------- HEADER ---------- */
+.app-header {
+    width: 100%;
+    padding: 24px 24px;
+    z-index: 10;
+}
+
+.header-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Logo */
+.logo-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logo-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 24px rgba(59, 130, 246, 0.25);
+}
+
+.logo-icon svg {
+    width: 22px;
+    height: 22px;
+    color: white;
+}
+
+.logo-text h1 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #34d399;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.logo-text p {
+    font-size: 10px;
+    font-weight: 600;
+    color: #5a5a70;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 2px;
+}
+
+/* AI Badge */
+.ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    border: 1px solid rgba(52, 211, 153, 0.25);
+    background: rgba(52, 211, 153, 0.06);
+}
+
+.ai-badge-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #34d399;
+    animation: pulseDot 2s ease infinite;
+}
+
+.ai-badge span {
+    font-size: 12px;
+    font-weight: 600;
+    color: #34d399;
+}
+
+/* ---------- MAIN CONTENT ---------- */
+.main-content {
+    flex: 1;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 16px 24px 48px;
+    z-index: 10;
+}
+
+/* ---------- FOOTER ---------- */
+.app-footer {
+    width: 100%;
+    padding: 20px 24px;
+    text-align: center;
+    z-index: 10;
+}
+
+.footer-text {
+    font-size: 12px;
+    color: #3a3a4e;
+}
+
+/* ---------- UTILITY ---------- */
+.animate-fade-up {
+    animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease both;
+}
+
+.animate-spin {
+    animation: spinSlow 1s linear infinite;
+}
+
+.animate-pulse {
+    animation: pulseDot 1.5s ease infinite;
+}
+
+.hidden-input {
+    display: none;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 640px) {
+
+    .header-inner,
+    .main-content {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}
